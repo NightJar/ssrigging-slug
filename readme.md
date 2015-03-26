@@ -67,6 +67,7 @@ The holder/child page type pattern is often... potentially unwieldy in undefined
 
 ###Properties
 The Extension takes three parameters, all of which are optional (although defaults should not be relied upon):
+
 1. The name of the field it should use to create a slug. (defaults to 'Title')
 2. The name of a relation on the 'parent' object (Page, in the example above), allowing for nested URLs. By default a slug must of course be unique, and this is usually globally to the extended class. However defining a 'parent ID' allows for a slug to be unique under that parent only. Eg. With the page setup above if `ItemsPage`s were set up to list primary colours, one can have both `primary-colours/red` AND `primary-light-colours/red`, rather than `primary-light-colours/red1`. (defaults to null)
 3. A parity bit. If set to true, whenever the field the module is bound to (Title by default, see 1.) is updated, the slug will automatically update also (keeping parity). Setting this to true also prevents the slug from being manually altered via the CMS by _not_ applying the field to the EditForm. (defaults to false)
