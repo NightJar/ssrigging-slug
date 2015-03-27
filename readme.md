@@ -9,7 +9,7 @@
 * `dev/build`
 
 ##Usage
-It is best to supply parameters with the extension (though not necessary if the defaults are sufficient, see About:Properties below), so the easiest method of applying it is by definition in the class itself
+It is best to supply parameters with the extension (though not necessary if the defaults are sufficient, see **About:Properties** below), so the easiest method of applying it is by definition in the class itself
 ```php
 class Item extends DataObject {
 	private static $extensions = array(
