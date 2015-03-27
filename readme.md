@@ -22,7 +22,7 @@ class Item extends DataObject {
 		'Parent' => 'ItemsPage'
 	);
 	public function Link() {
-		return $this->Parent()->Link().$this->URLSlug,'/';
+		return $this->Parent()->Link().$this->URLSlug.'/';
 	}
 }
 ```
