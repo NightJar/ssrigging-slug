@@ -1,5 +1,5 @@
 {
-	"name": "nightjar/ssslug",
+	"name": "nightjar/ss-slug",
 	"description": "Serve DataObjects as pages through an Action on a relation's Page_Controller without referencing the ID",
 	"type": "silverstripe-module",
 	"keywords": ["silverstripe","extension"],
