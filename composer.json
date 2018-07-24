@@ -1,8 +1,8 @@
 {
 	"name": "nightjar/ss-slug",
 	"description": "Serve DataObjects as pages through an Action on a relation's Page_Controller without referencing the ID",
-	"type": "silverstripe-module",
-	"keywords": ["silverstripe","extension"],
+	"type": "silverstripe-vendormodule",
+	"keywords": ["silverstripe","extension","slug"],
 	"license": "MIT",
 	"authors": [
 		{
@@ -14,7 +14,7 @@
 		"irc": "irc://chat.freenode.org/silverstripe"
 	},
 	"require": {
-		"silverstripe/framework": ">=3.1"
+		"silverstripe/framework": "^4.1"
 	},
 	"extra": {
 		"installer-name": "slug"
