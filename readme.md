@@ -1,10 +1,15 @@
 # ssrigging-slug
 
 ## Requirements
-* Silverstripe 3.1
+* Silverstripe 4+
 * cms module (optional)
 
 ## Installation
+
+### Composer (preferred)
+* `composer require nightjar/ss-slug`
+
+### Downloading zip
 * Simply drop into silverstripe root (using whatever method)
 * `dev/build`
 
@@ -12,41 +17,50 @@
 It is best to supply parameters with the extension (though not necessary if the defaults are sufficient, see **About:Properties** below), so the easiest method of applying it is by definition in the class itself
 ```php
 class Item extends DataObject {
-	private static $extensions = array(
-		'Slug("Title", "ParentID", true)' //Apply Extension!
-	);
-	private static $db = array(
+	private static $extensions = [
+		'\NightJar\Slug\Model\Slug("Title", "ParentID", true)' //Apply Extension!
+	];
+	private static $db = [
 		'Title' => 'Varchar'
-	);
-	private static $has_one = array(
+	];
+	private static $has_one = [
 		'Parent' => 'ItemsPage'
-	);
+	];
 	public function Link() {
 		return $this->Parent()->Link().$this->URLSlug.'/';
 	}
 }
 ```
+
+or put it into config.yml
+
+```yaml
+Item:
+  extensions:
+    - \NightJar\Slug\Model\Slug("Title", "ParentID", true)
+```
+
 This part is optional, but is a common pattern (and part of this example as a whole). One does not necessarily have to use Page at all, or any kind of 'parent' type model object.
 ```php
 class ItemsPage extends Page {
-	private static $has_many = array(
+	private static $has_many = [
 		'Items' => 'Item'
-	);
+	];
 }
 ```
 Then comes the much more necessary part where one adds a Controller method to access the items decorated items via a request (provided example here is for a Page_Controller). The method/action names are of course exemplary; So long as the applicable configuration elements are all consistent, the names can of course change.
 ```php
 class ItemsPage_Controller extends Page_Controller {
-	private static $url_handlers = array(
+	private static $url_handlers = [
 		'$Item!' => 'viewItem'
-	);
-	private static $allowed_actions = array(
+	];
+	private static $allowed_actions = [
 		'viewItem'
-	);
+	];
 	public function viewItem() {
 		$item = $this->getItem();
 		if(!$item) $this->httpError(404);
-		return array('Item' => $this->Items()->filter('URLSlug', $this->request->param('Item'))->first());
+		return ['Item' => $this->Items()->filter('URLSlug', $this->request->param('Item'))->first()];
 	}
 	//One can use something like this to <% if $Top.activeItem == $Slug %> in a menu
 	public function activeItem() {
