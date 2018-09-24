@@ -1,22 +1,37 @@
 {
-	"name": "nightjar/ss-slug",
-	"description": "Serve DataObjects as pages through an Action on a relation's Page_Controller without referencing the ID",
-	"type": "silverstripe-module",
-	"keywords": ["silverstripe","extension"],
-	"license": "MIT",
-	"authors": [
-		{
-			"name": "Nightjar"
-		}
-	],
-	"support": {
-		"issues": "https://github.com/Nightjar/ssrigging-slug/issues",
-		"irc": "irc://chat.freenode.org/silverstripe"
-	},
-	"require": {
-		"silverstripe/framework": ">=3.1"
-	},
-	"extra": {
-		"installer-name": "slug"
-	}
+    "name": "nightjar/ss-slug",
+    "description": "Serve DataObjects as pages through an Action on a relation's Controller without referencing the ID",
+    "type": "silverstripe-vendormodule",
+    "keywords": ["silverstripe","extension","slug"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nightjar"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Nightjar/ssrigging-slug/issues",
+        "irc": "irc://chat.freenode.org/silverstripe",
+        "slack": "https://silverstripe-users.slack.com"
+    },
+    "require": {
+        "silverstripe/framework": "^4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.7",
+        "squizlabs/php_codesniffer": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nightjar\\Slug\\": "src/",
+            "Nightjar\\Slug\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.x-dev"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

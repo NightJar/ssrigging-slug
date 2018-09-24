@@ -1,0 +1,15 @@
+---
+Name: sluggy
+---
+SilverStripe\Core\Injector\Injector:
+  # Never register an Extension that takes args as a singleton
+  # Singleton is default, and the name (without args) is used as the ID.
+  # @see SilverStripe\Core\Injector\Injector::getNamedService
+  Nightjar\Slug\Slug:
+    class: Nightjar\Slug\Slug
+    type: prototype
+  # set up convenience & backwards compatiblity references
+  Slug:
+    class: Nightjar\Slug\Slug
+    type: prototype
+  SlugHandler: Nightjar\Slug\SlugHandler
