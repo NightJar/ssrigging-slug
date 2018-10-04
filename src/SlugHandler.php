@@ -2,8 +2,11 @@
 
 namespace Nightjar\Slug;
 
-use SilverStripe\Control\HTTPRequest;
+use LogicException;
 use SilverStripe\Core\Extension;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse_Exception;
 
 /**
  * This is for handling a request for a slugged DataObject, and should be applied to a Controller.
@@ -52,34 +55,46 @@ class SlugHandler extends Extension
      *
      * @var array
      */
-    protected $data;
+    protected $dataSource;
 
     /**
      * Apply extension to {@see SilverStripe\Control\Controller}.
      * Supply a parameter as a shorthand if handling multiple slugs on the same object is unneeded.
      * Also takes the name of the initial getter function used to move from Controller to Model,
      * the default is set to 'getFailover' as this is nicely generic - so if this property is not set
-     * then a failover should be ensured. The data parameter could even be `Me` if the controller is 
+     * then a failover should be ensured. The data source parameter could even be `Me` if the controller is
      * 'bare' and getter methods exist directly on it for each slugged object type (with no parent relation).
      *
      * @param string $relationship Relationship name (optional)
-     * @param string $data getter function name
+     * @param string $dataSource getter function name
      */
-    public function __construct($relationship = null, $data = 'getFailover')
+    public function __construct($relationship = null, $dataSource = 'getFailover')
     {
         parent::__construct();
         $this->slugs = $relationship ? ['' => $relationship] : null;
-        $this->data = $data;
+        $this->dataSource = $dataSource;
     }
 
+    /**
+     * Fetches the slugged item at the end of a route (slime trail).
+     *
+     * @return DataObject
+     * @throws LogicException
+     * @throws HTTPResponse_Exception 404
+     */
     protected function findSlug()
     {
-        // You're probably wondering about these variable names...
         /** @var SilverStripe\Control\Controller */
         $owner = $this->getOwner();
         $request = $owner->getRequest();
-        $plot = $this->data;
+        
+        // You're probably wondering about these variable names...
+        $plot = $this->dataSource;
         $garden = $owner->$plot();
+        if (!$garden) {
+            $mrMcGregors = get_class($owner);
+            throw new LogicException("There is no garden in $mrMcGregors::$plot() to find Slugs in!");
+        }
         $slime = $this->slugs;
         if (!$slime) {
             $slime = $garden->config()->get('slug_trails') ?: $owner->config()->get('slug_trails');
@@ -99,9 +114,9 @@ class SlugHandler extends Extension
      */
     public function handleSlug(HTTPRequest $request)
     {
-        $owner = $this->getOwner();
         $item = $this->findSlug();
         if (!$item) {
+            $owner = $this->getOwner();
             $owner->httpError(404);
         }
         $item->setSlugActive(Slug::ACTIVE_CURRENT);

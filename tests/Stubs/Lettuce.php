@@ -7,7 +7,7 @@ use SilverStripe\Dev\TestOnly;
 
 class Lettuce extends DataObject implements TestOnly
 {
-    private static $has_one = [
+    private static $many_many = [
         'Protection' => Blitzem::class
     ];
 }

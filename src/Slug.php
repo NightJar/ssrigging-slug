@@ -3,6 +3,7 @@
 namespace Nightjar\Slug;
 
 use InvalidArgumentException;
+use UnexpectedValueException;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\DataExtension;
@@ -89,14 +90,18 @@ class Slug extends DataExtension
 
     public function setOwner($owner)
     {
+        // parent method is set in a try, with a finally to clearOwner - so it is important we set it first,
+        // otherwise our InvalidArgumentException will be swallowed by a BadMethodCallException!
+        parent::setOwner($owner);
+
         // throw an exception if the $relationName is invalid or not has_one
         if ($this->relationName) {
-            $valid = DataObject::getSchema()->hasOneComponent(get_class($owner), $this->relationName);
+            $ownerClass = get_class($owner);
+            $valid = DataObject::getSchema()->hasOneComponent($ownerClass, $this->relationName);
             if (!$valid) {
-                throw new InvalidArgumentException("$relationName is invalid has_one on " . get_class());
+                throw new InvalidArgumentException("$this->relationName is an invalid has_one on $ownerClass");
             }
         }
-        parent::setOwner($owner);
     }
 
     /**
@@ -136,11 +141,11 @@ class Slug extends DataExtension
     {
         $owner = $this->getOwner();
         $field = $this->fieldToSlug;
-        $slug = $owner->URLSlug;
-        if (!$slug || $forceRegeneration) {
-            $slug = URLSegmentFilter::create()->filter($owner->$field);
+        $unfilteredSlug = $owner->URLSlug;
+        if (!$unfilteredSlug || $forceRegeneration) {
+            $unfilteredSlug = $owner->$field;
         }
-        return $slug;
+        return URLSegmentFilter::create()->filter($unfilteredSlug);
     }
 
     /**
@@ -179,6 +184,17 @@ class Slug extends DataExtension
                 $owner->URLSlug = $owner->URLSlug . $count++;
                 $filter['URLSlug'] = $owner->URLSlug;
             }
+        } elseif ($slugHasChanged) {
+            // enforceParity is set, and the slug has changed... but the
+            // field to slug has not. We need to reset to keep parity.
+            // Ideally we could do this via the $original property through
+            // {@see DataObject::getChangedFields}, however the returned
+            // 'before' value for a changed field is unreliable :(
+            // https://github.com/silverstripe/silverstripe-framework/issues/8443
+            throw new UnexpectedValueException(
+                'URLSlug has been updated independently of the tracked field, ' .
+                'but this has been disabled via Slug::enforceParity'
+            );
         }
     }
 
@@ -199,13 +215,18 @@ class Slug extends DataExtension
      */
     public function Link($action = null)
     {
+        $link = null;
         $owner = $this->getOwner();
-        $slugAction = [$owner->URLSlug];
-        if ($action) {
-            array_push($slugAction, $action);
+        $action = ($action) ? Controller::join_links($owner->URLSlug, $action) : $owner->URLSlug;
+        
+        $relationName = $this->relationName;
+        if ($relationName && ($parent = $owner->$relationName()) && $parent->hasMethod('Link')) {
+            $link = $parent->Link($action);
+        } elseif (Controller::has_curr()) {
+            // Quite the assumption, but sufficient in most cases.
+            $link = Controller::curr()->Link($action);
         }
-        // Quite the assumption, but sufficient in most cases.
-        return Controller::has_curr() ? Controller::curr()->Link($slugAction) : null;
+        return $link;
     }
 
     /**

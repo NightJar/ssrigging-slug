@@ -2,17 +2,15 @@
 
 namespace Nightjar\Slug\Tests\Stubs;
 
-use SilverStripe\ORM\DataObject;
 use SilverStripe\Dev\TestOnly;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Control\Controller;
 
 class NewsPage extends DataObject implements TestOnly
 {
     private static $has_many = [
         'Articles' => Article::class,
-    ];
-
-    private static $many_many = [
-        'Journalists' => Journalist::class
+        'Journalists' => Journalist::class,
     ];
 
     public function Link($action = null)

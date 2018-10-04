@@ -4,11 +4,13 @@ namespace Nightjar\Slug\Tests;
 
 use Nightjar\Slug\Slug;
 use InvalidArgumentException;
+use UnexpectedValueException;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Config\Config;
 use Nightjar\Slug\Tests\Stubs\Article;
 use Nightjar\Slug\Tests\Stubs\Blitzem;
 use Nightjar\Slug\Tests\Stubs\NewsPage;
+use SilverStripe\Core\Injector\Injector;
 use Nightjar\Slug\Tests\Stubs\Journalist;
 
 class SlugTest extends SapphireTest
@@ -47,29 +49,49 @@ class SlugTest extends SapphireTest
 
     public function testCannotAssociateToInvalidRelationshipType()
     {
+        Config::modify()->merge(Blitzem::class, 'extensions', [Slug::class . '("Title", "Protects")']);
+
         $this->expectException(InvalidArgumentException::class);
+        // Try to go through the Blitzem to get to the tasty Lettuce!
         Blitzem::create();
     }
 
-    public function testSlugsWillSanitise()
+    public function testSlugsWillSetAndSanitiseOnSave()
     {
-        $journo = Journalist::create()->update(['Name' => 'Ash Katchum!']);
-        $journo->extend('onBeforeWrite');
-        $this->assertEquals('ash-katchum', $journo->URLSlug);
-        $journo->update(['Name' => '5* Stories'])->extend('onBeforeWrite');
-        $this->assertEquals('Ash Katchum!', $journo->Name);
-        $this->assertEquals('5-stories', $journo->URLSlug);
+        $config = Config::modify();
+        $config->set(Injector::class, 'JournalistSlug', [
+            'class' => Slug::class,
+            'constructor' => ['Name', 'NewsPages'],
+        ]);
+        $config->merge(Journalist::class, 'extensions', ['JournalistSlug']);
+
+        $journo = Journalist::create();
+        $journo->update(['Name' => 'Ash Katchum!'])->extend('onBeforeWrite');
+        $this->assertEquals('ash-katchum', $journo->URLSlug, 'initial write should sanitise');
+        $journo->update(['URLSlug' => '5* Stories'])->extend('onBeforeWrite');
+        $this->assertEquals('Ash Katchum!', $journo->Name, 'Name remains unaffected');
+        $this->assertEquals('5-stories', $journo->URLSlug, 'onBeforeWrite should always sanitise');
     }
 
-    public function testSlugKeepsParityWhenTold()
+    public function testSlugKeepsParity()
     {
-        $newArticle = Article::create()->update(['Title' => 'Second News']);
-        $newArticle->extend('onBeforeWrite');
+        $newArticle = Article::create();
+        
+        $newArticle->update(['Title' => 'Second News'])->fakeWrite();
         $this->assertEquals('second-news', $newArticle->URLSlug);
-        $newArticle->update(['Title' => 'Sports News'])->extend('onBeforeWrite');
+
+        $newArticle->update(['Title' => 'Sports News'])->fakeWrite();
+        $this->assertEquals('sports-news', $newArticle->URLSlug);
+
+        $newArticle->URLSlug = 'rugby-news';
+        $this->expectException(UnexpectedValueException::class);
+        $newArticle->fakeWrite();
         $this->assertEquals('sports-news', $newArticle->URLSlug);
     }
 
+    /**
+     * Uses the database.
+     */
     public function testSlugCollisionsCorrectThemselves()
     {
         $newsPage = $this->objFromFixture(NewsPage::class, 'holder');
@@ -82,7 +104,10 @@ class SlugTest extends SapphireTest
         $this->assertEquals('First news', $newArticle->Title);
     }
 
-    public function testCollisionDetectionIsLocalisedWhenTold()
+    /**
+     * Uses the database.
+     */
+    public function testCollisionDetectionIsLocalised()
     {
         $article = $this->objFromFixture(Article::class, 'one');
         $this->assertEquals('first-news', $article->URLSlug);
@@ -100,6 +125,17 @@ class SlugTest extends SapphireTest
         $this->assertEquals('first-news', $oldArticle->URLSlug);
     }
 
+    /**
+     * Uses the database.
+     */
+    public function testLink()
+    {
+        $article = $this->objFromFixture(Article::class, 'one');
+        $this->assertEquals('news/first-news', $article->Link());
+        $iSpy = '?tracking=you#some-ad';
+        $this->assertEquals("news/first-news${iSpy}", $article->Link($iSpy));
+    }
+
     public function testCMSFieldsAreUpdated()
     {
         $fields = Article::create()->getCMSFields();
@@ -107,14 +143,6 @@ class SlugTest extends SapphireTest
 
         $fields = Journalist::create()->getCMSFields();
         $this->assertNotNull($fields->dataFieldByName('URLSlug'));
-    }
-
-    public function testLink()
-    {
-        $article = $this->objFromFixture(Article::class, 'one');
-        $this->expectEquals('news/first-news', $article->Link());
-        $iSpy = '?tracking=you#some-ad';
-        $this->assertEquals("news/first-news${iSpy}", $article->Link($iSpy));
     }
 
     public function testActiveUnsetByDefault()
@@ -137,10 +165,11 @@ class SlugTest extends SapphireTest
         $slug = new Slug;
         $slug->setSlugActive(Slug::ACTIVE_CURRENT);
 
+        // current is also a section head - this mirrors SiteTree behaviour
         $this->assertTrue($slug->isCurrent());
-        $this->assertFalse($slug->isSection());
+        $this->assertTrue($slug->isSection());
         $this->assertSame('current', $slug->LinkOrCurrent());
-        $this->assertSame('link', $slug->LinkOrSection());
+        $this->assertSame('section', $slug->LinkOrSection());
         $this->assertSame('current', $slug->LinkingMode());
 
         $slug->setSlugActive(Slug::ACTIVE_NONE);
@@ -154,8 +183,8 @@ class SlugTest extends SapphireTest
 
         $this->assertFalse($slug->isCurrent());
         $this->assertTrue($slug->isSection());
-        $this->assertSame('section', $slug->LinkOrCurrent());
-        $this->assertSame('link', $slug->LinkOrSection());
+        $this->assertSame('link', $slug->LinkOrCurrent());
+        $this->assertSame('section', $slug->LinkOrSection());
         $this->assertSame('section', $slug->LinkingMode());
 
         $slug->setSlugActive(Slug::ACTIVE_NONE);

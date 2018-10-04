@@ -4,3 +4,6 @@ Nightjar\Slug\Tests\Stubs\Article:
   one:
     Title: 'First News'
     Parent: =>Nightjar\Slug\Tests\Stubs\NewsPage.holder
+Nightjar\Slug\Tests\Stubs\Journalist:
+  jim:
+    Name: 'Jimbo the Journo'
