@@ -26,7 +26,7 @@ use Nightjar\Slug\Slug;
 
 class Item extends DataObject {
     private static $extensions = [
-        Slug::class . '("Title", "ParentID", true)' // Apply Extension!
+        Slug::class . '("Title", "Parent", true)' // Apply Extension!
     ];
     private static $db = [
         'Title' => 'Varchar'
@@ -46,7 +46,7 @@ Or this could happen via _config yaml files
 # Generate URL 'slugs' for Items
 MyVendor\MyNamespace\Item
   - extensions:
-    - Nightjar\Slug\Slug('Title','ParentID',true)
+    - Nightjar\Slug\Slug('Title','Parent',true)
 ```
 
 This part is optional, but is a common pattern (and part of this example as a whole). One does not necessarily have to use `Page` for this, or any kind of 'parent' type model object (as the slug extension at base simply adds a property to a model).
@@ -94,7 +94,7 @@ The holder/child page type pattern is often... potentially unwieldy in large num
 The Slug Extension takes three constructor parameters, all of which are optional:
 
 1. The name of the field it should use to create a slug. (defaults to 'Title')
-2. The name of a relation on the 'parent' object (Page, in the example above), allowing for nested URLs. By default a slug must of course be unique, and this is usually globally to the extended class. However defining a 'parent ID' allows for a slug to be unique under that parent only. Eg. With the page setup above if `ItemsPage`s were set up to list primary colours, one can have both `primary-colours/red` AND `primary-light-colours/red`, rather than `primary-light-colours/red1`. (defaults to null)
+2. The name of a relation on the 'parent' object (Page, in the example above), allowing for nested URLs. By default a slug must of course be unique, and this is usually globally to the extended class. However defining a 'parent' allows for a slug to be unique under that parent only. Eg. With the page setup above if `ItemsPage`s were set up to list primary colours, one can have both `primary-colours/red` AND `primary-light-colours/red`, rather than `primary-light-colours/red1`. (defaults to null)
 3. A parity bit. If set to true, whenever the field the module is bound to (Title by default, see 1.) is updated, the slug will automatically update also (keeping parity). Setting this to true also prevents the slug from being manually altered via the CMS by _not_ applying the field to the EditForm. (defaults to false)
 
 The SlugHandler extension takes two constructor parameters, both of which are optional:
