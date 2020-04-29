@@ -157,10 +157,13 @@ class Slug extends DataExtension
         $owner = $this->getOwner();
         $slugHasChanged = $owner->isChanged('URLSlug');
         $fieldToSlugHasChanged = $owner->isChanged($this->fieldToSlug);
+        $relationHasChanged = $this->relationName && $owner->isChanged($this->relationName . 'ID');
+
         $updateSlug = (
             empty($owner->URLSlug)
             || ($this->enforceParity && $fieldToSlugHasChanged)
             || (!$this->enforceParity && $slugHasChanged)
+            || $relationHasChanged
         );
 
         if ($updateSlug) {
