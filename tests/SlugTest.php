@@ -2,35 +2,31 @@
 
 namespace Nightjar\Slug\Tests;
 
-use Nightjar\Slug\Slug;
 use InvalidArgumentException;
-use UnexpectedValueException;
-use SilverStripe\Dev\SapphireTest;
-use SilverStripe\Core\Config\Config;
+use Nightjar\Slug\Slug;
 use Nightjar\Slug\Tests\Stubs\Article;
 use Nightjar\Slug\Tests\Stubs\Blitzem;
-use Nightjar\Slug\Tests\Stubs\NewsPage;
-use SilverStripe\Core\Injector\Injector;
 use Nightjar\Slug\Tests\Stubs\Journalist;
+use Nightjar\Slug\Tests\Stubs\NewsPage;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\Dev\SapphireTest;
+use UnexpectedValueException;
 
 class SlugTest extends SapphireTest
 {
-    protected $usesTransactions = false;
-
     protected static $fixture_file = 'SlugTest.yml';
-
     protected static $extra_dataobjects = [
         Article::class,
         Blitzem::class,
         NewsPage::class,
         Journalist::class,
     ];
-
     protected static $required_extensions = [
         Journalist::class => [
             Slug::class
         ]
     ];
+    protected $usesTransactions = false;
 
     public function testGettingSlug()
     {
@@ -103,6 +99,25 @@ class SlugTest extends SapphireTest
         $anotherArticle->write();
         $this->assertEquals('first-news-2', $anotherArticle->URLSlug);
         $this->assertEquals('First news', $anotherArticle->Title);
+    }
+
+    public function testSlugCollisionFixesItselfWhenParentChanges()
+    {
+        $newsPage = $this->objFromFixture(NewsPage::class, 'holder');
+        $newArticle = Article::create()->update([
+            'Title' => 'First news',
+            'ParentID' => 0,
+        ]);
+        $newArticle->write();
+        $this->assertEquals('first-news', $newArticle->URLSlug,
+            'Slug doesn\'t need to be fixed when objects have different parents');
+        $this->assertEquals('First news', $newArticle->Title);
+
+        $newArticle->ParentID = $newsPage->ID;
+        $newArticle->write();
+        $this->assertEquals('first-news-1', $newArticle->URLSlug,
+            'Slug should fix when it collides with a slug in a new parent');
+        $this->assertEquals('First news', $newArticle->Title);
     }
 
     /**
