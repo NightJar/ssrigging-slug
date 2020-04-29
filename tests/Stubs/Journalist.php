@@ -2,6 +2,7 @@
 
 namespace Nightjar\Slug\Tests\Stubs;
 
+use Nightjar\Slug\Slug;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DataObject;
 
@@ -15,5 +16,9 @@ class Journalist extends DataObject implements TestOnly
 
     private static $has_one = [
         'NewsPages' => NewsPage::class
+    ];
+
+    private static $extensions = [
+        Slug::class . '("Name", "NewsPages")'
     ];
 }

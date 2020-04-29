@@ -58,13 +58,6 @@ class SlugTest extends SapphireTest
 
     public function testSlugsWillSetAndSanitiseOnSave()
     {
-        $config = Config::modify();
-        $config->set(Injector::class, 'JournalistSlug', [
-            'class' => Slug::class,
-            'constructor' => ['Name', 'NewsPages'],
-        ]);
-        $config->merge(Journalist::class, 'extensions', ['JournalistSlug']);
-
         $journo = Journalist::create();
         $journo->update(['Name' => 'Ash Katchum!'])->extend('onBeforeWrite');
         $this->assertEquals('ash-katchum', $journo->URLSlug, 'initial write should sanitise');
@@ -76,7 +69,7 @@ class SlugTest extends SapphireTest
     public function testSlugKeepsParity()
     {
         $newArticle = Article::create();
-        
+
         $newArticle->update(['Title' => 'Second News'])->fakeWrite();
         $this->assertEquals('second-news', $newArticle->URLSlug);
 
