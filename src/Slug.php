@@ -3,12 +3,12 @@
 namespace Nightjar\Slug;
 
 use InvalidArgumentException;
-use UnexpectedValueException;
-use SilverStripe\ORM\DataObject;
+use SilverStripe\Control\Controller;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\DataExtension;
-use SilverStripe\Control\Controller;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\View\Parsers\URLSegmentFilter;
+use UnexpectedValueException;
 
 /**
  * Adds a 'url slug' property to DataObject classes, in order for them to be able to be loaded via a URL
@@ -76,8 +76,8 @@ class Slug extends DataExtension
     /**
      * Apply extension with configurable defaults
      *
-     * @param string  $fieldToSlug   The field on the owner to base the URL Slug from - defaults to 'Title'
-     * @param string  $relationName  Optional name of the has_one relationship to the owner's parent class/Page
+     * @param string $fieldToSlug The field on the owner to base the URL Slug from - defaults to 'Title'
+     * @param string $relationName Optional name of the has_one relationship to the owner's parent class/Page
      * @param boolean $enforceParity true to alter the URLSlug whenever the $fieldToSlug changes value (default: false)
      */
     public function __construct($fieldToSlug = 'Title', $relationName = null, $enforceParity = false)
@@ -132,9 +132,81 @@ class Slug extends DataExtension
     }
 
     /**
+     * Check for collisions, if we need to update the slug and
+     * update the model with the confirmedsafe value before writing
+     */
+    public function onBeforeWrite()
+    {
+        if ($this->slugIsOutdated()) {
+            $this->updateSlug();
+        } elseif ($this->slugHasChanged()) {
+            // enforceParity is set, and the slug has changed... but the
+            // field to slug has not. We need to reset to keep parity.
+            // Ideally we could do this via the $original property through
+            // {@see DataObject::getChangedFields}, however the returned
+            // 'before' value for a changed field is unreliable :(
+            // https://github.com/silverstripe/silverstripe-framework/issues/8443
+            throw new UnexpectedValueException(
+                'URLSlug has been updated independently of the tracked field, ' .
+                'but this has been disabled via Slug::enforceParity'
+            );
+        }
+    }
+
+    /**
+     * Helper to decide if a slug is outdated
+     *
+     * @return bool
+     */
+    public function slugIsOutdated(): bool
+    {
+        $owner = $this->getOwner();
+        $slugHasChanged = $this->slugHasChanged();
+        $fieldToSlugHasChanged = $owner->isChanged($this->fieldToSlug);
+        $relationHasChanged = $this->relationName && $owner->isChanged($this->relationName . 'ID');
+
+        return (
+            empty($owner->URLSlug)
+            || ($this->enforceParity && $fieldToSlugHasChanged)
+            || (!$this->enforceParity && $slugHasChanged)
+            || $relationHasChanged
+        );
+    }
+
+    /**
+     * the actual logic for updating the slug and fix collisions with other slugs that have the same parent
+     */
+    public function updateSlug(): void
+    {
+        $owner = $this->getOwner();
+        $owner->URLSlug = $this->getSlug($this->enforceParity);
+
+        $collisionList = DataObject::get(get_class($owner))->exclude('ID', $owner->ID);
+        $filter = ['URLSlug' => $owner->URLSlug];
+
+        if ($this->relationName) {
+            $parentIDField = $this->relationName . 'ID';
+            $filter[$parentIDField] = $owner->$parentIDField;
+            // Also handle polymorphic relationships
+            $parentClassName = DataObject::getSchema()->hasOneComponent(get_class($owner), $this->relationName);
+            if ($parentClassName === DataObject::class) {
+                $parentClassField = $this->relationName . 'Class';
+                $filter[$parentClassField] = $owner->$parentClassField;
+            }
+        }
+
+        $count = 1;
+        $origSlug = $owner->URLSlug;
+        while ($collisionList->filter($filter)->exists()) {
+            $owner->URLSlug = implode('-', [$origSlug, $count++]);
+            $filter['URLSlug'] = $owner->URLSlug;
+        }
+    }
+
+    /**
      * Generate a url slug segment
      *
-     * @param  boolean $forceRegeneration
+     * @param boolean $forceRegeneration
      * @return string
      */
     public function getSlug($forceRegeneration = false)
@@ -149,57 +221,13 @@ class Slug extends DataExtension
     }
 
     /**
-     * Check for collisions, iff we need to update the slug and
-     * upate the model with the confirmedsafe value before writing
+     * Helper to decide if the slug field has changed
+     *
+     * @return bool
      */
-    public function onBeforeWrite()
+    public function slugHasChanged(): bool
     {
-        $owner = $this->getOwner();
-        $slugHasChanged = $owner->isChanged('URLSlug');
-        $fieldToSlugHasChanged = $owner->isChanged($this->fieldToSlug);
-        $relationHasChanged = $this->relationName && $owner->isChanged($this->relationName . 'ID');
-
-        $updateSlug = (
-            empty($owner->URLSlug)
-            || ($this->enforceParity && $fieldToSlugHasChanged)
-            || (!$this->enforceParity && $slugHasChanged)
-            || $relationHasChanged
-        );
-
-        if ($updateSlug) {
-            $owner->URLSlug = $this->getSlug($this->enforceParity);
-
-            $collisionList = DataObject::get(get_class($owner))->exclude('ID', $owner->ID);
-            $filter = ['URLSlug' => $owner->URLSlug];
-            if ($this->relationName) {
-                $parentIDField = $this->relationName . 'ID';
-                $filter[$parentIDField] = $owner->$parentIDField;
-                // Also handle polymorphic relationships
-                $parentClassName = DataObject::getSchema()->hasOneComponent(get_class($owner), $this->relationName);
-                if ($parentClassName === DataObject::class) {
-                    $parentClassField = $this->relationName . 'Class';
-                    $filter[$parentClassField] = $owner->$parentClassField;
-                }
-            }
-
-            $count = 1;
-            $origSlug = $owner->URLSlug;
-            while ($collisionList->filter($filter)->exists()) {
-                $owner->URLSlug = implode('-', [$origSlug,  $count++]);
-                $filter['URLSlug'] = $owner->URLSlug;
-            }
-        } elseif ($slugHasChanged) {
-            // enforceParity is set, and the slug has changed... but the
-            // field to slug has not. We need to reset to keep parity.
-            // Ideally we could do this via the $original property through
-            // {@see DataObject::getChangedFields}, however the returned
-            // 'before' value for a changed field is unreliable :(
-            // https://github.com/silverstripe/silverstripe-framework/issues/8443
-            throw new UnexpectedValueException(
-                'URLSlug has been updated independently of the tracked field, ' .
-                'but this has been disabled via Slug::enforceParity'
-            );
-        }
+        return $this->owner->isChanged('URLSlug');
     }
 
     public function updateCMSFields(FieldList $fields)
@@ -234,27 +262,6 @@ class Slug extends DataExtension
     }
 
     /**
-     * Returns true if this is the slugged object being used to handle this request.
-     *
-     * @return boolean
-     */
-    public function isCurrent()
-    {
-        return $this->active === self::ACTIVE_CURRENT;
-    }
-
-    /**
-     * Check if this slugged object is in the currently active section
-     * (i.e. it, or one of its children is currently being viewed).
-     *
-     * @return boolean
-     */
-    public function isSection()
-    {
-        return $this->isCurrent() || ($this->active === self::ACTIVE_SECTION);
-    }
-
-    /**
      * Return "link" or "section" depending on if this is the current viewing object.
      * {@see isCurrent}
      *
@@ -266,6 +273,16 @@ class Slug extends DataExtension
     }
 
     /**
+     * Returns true if this is the slugged object being used to handle this request.
+     *
+     * @return boolean
+     */
+    public function isCurrent()
+    {
+        return $this->active === self::ACTIVE_CURRENT;
+    }
+
+    /**
      * Return "link" or "section" depending on if this is the current section.
      * {@see isSection}
      *
@@ -274,6 +291,17 @@ class Slug extends DataExtension
     public function LinkOrSection()
     {
         return $this->isSection() ? 'section' : 'link';
+    }
+
+    /**
+     * Check if this slugged object is in the currently active section
+     * (i.e. it, or one of its children is currently being viewed).
+     *
+     * @return boolean
+     */
+    public function isSection()
+    {
+        return $this->isCurrent() || ($this->active === self::ACTIVE_SECTION);
     }
 
     /**
