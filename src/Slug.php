@@ -181,7 +181,7 @@ class Slug extends DataExtension
 
             $count = 1;
             while ($collisionList->filter($filter)->exists()) {
-                $owner->URLSlug = $owner->URLSlug . $count++;
+                $owner->URLSlug = implode('-', [$owner->URLSlug,  $count++]);
                 $filter['URLSlug'] = $owner->URLSlug;
             }
         } elseif ($slugHasChanged) {
@@ -218,7 +218,7 @@ class Slug extends DataExtension
         $link = null;
         $owner = $this->getOwner();
         $action = ($action) ? Controller::join_links($owner->URLSlug, $action) : $owner->URLSlug;
-        
+
         $relationName = $this->relationName;
         if ($relationName && ($parent = $owner->$relationName()) && $parent->hasMethod('Link')) {
             $link = $parent->Link($action);
