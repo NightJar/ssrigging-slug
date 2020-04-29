@@ -92,9 +92,17 @@ class SlugTest extends SapphireTest
             'Title' => 'First news',
             'ParentID' => $newsPage->ID,
         ]);
-        $newArticle->extend('onBeforeWrite');
+        $newArticle->write();
         $this->assertEquals('first-news-1', $newArticle->URLSlug);
         $this->assertEquals('First news', $newArticle->Title);
+
+        $anotherArticle = Article::create()->update([
+            'Title' => 'First news',
+            'ParentID' => $newsPage->ID,
+        ]);
+        $anotherArticle->write();
+        $this->assertEquals('first-news-2', $anotherArticle->URLSlug);
+        $this->assertEquals('First news', $anotherArticle->Title);
     }
 
     /**

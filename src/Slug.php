@@ -180,8 +180,9 @@ class Slug extends DataExtension
             }
 
             $count = 1;
+            $origSlug = $owner->URLSlug;
             while ($collisionList->filter($filter)->exists()) {
-                $owner->URLSlug = implode('-', [$owner->URLSlug,  $count++]);
+                $owner->URLSlug = implode('-', [$origSlug,  $count++]);
                 $filter['URLSlug'] = $owner->URLSlug;
             }
         } elseif ($slugHasChanged) {
