@@ -23,29 +23,6 @@ class SlugHandlerTest extends FunctionalTest
         Journalist::class,
     ];
 
-    /**
-     * By all accounts this should be setUpBeforeClass... but it is too coarse a call to achieve getting
-     * Journalist.URLSlug into the database (modifying Conifg before calling parent::setUpBeforeClass is
-     * too soon, and calling after parent;:setUpBeforeClass is too late!). So we must hijack a call from
-     * within setUpBeforeClass to allow for this. This is the only viable option!
-     *
-     * The reason for this is because we cannot define TestOnly yaml configuration like we can with php
-     * fixture classes, and here we are also testing defining a service to apply the extension works.
-     * This is important for e.g. backwards compatiblity aliases
-     */
-    public static function getExtraDataObjects()
-    {
-        $config = Config::modify();
-        $config->set(Injector::class, 'JournalistSlug', [
-            'class' => Slug::class,
-            'constructor' => ['Name', 'NewsPages'],
-        ]);
-        $config->merge(Journalist::class, 'extensions', ['JournalistSlug']);
-
-        // Do what we actually came here for
-        return parent::getExtraDataObjects();
-    }
-
     protected function setUp()
     {
         parent::setUp();
