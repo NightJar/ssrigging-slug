@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* silverstripe/framework ^4
+* silverstripe/framework ^4 || ^5
 * silverstripe/cms (optional)
 
 **Please note:** For a SilverStripe 3 compatible version, please see [the 1.0.0 release](https://github.com/nightjar/ssrigging-slug/tree/1.0.0).
