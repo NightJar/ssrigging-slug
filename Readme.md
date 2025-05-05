@@ -73,10 +73,26 @@ use Nightjar\Slug\SlugHandler;
 
 class ItemsPageController extends PageController {
     private static $extensions = [
-        'Nightjar\Slug\SlugHandler'
+        SlugHandler::class
     ];
 }
 ```
+
+Note: if your relation is not named `Items`, but e.g. `MyItems`, you have to configure `SlugHandler` in your controller class like:
+
+```php
+namespace MyVendor\MyNamespace;
+
+use PageController;
+use Nightjar\Slug\SlugHandler;
+
+class ItemsPageController extends PageController {
+    private static $extensions = [
+        SlugHandler::class . '("MyItems")'
+    ];
+}
+```
+
 
 One can then define a template such as MyVendor/MyNamespace/ItemsPage_handleSlug.ss
 
