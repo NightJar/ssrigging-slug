@@ -46,7 +46,7 @@ class SlugHandlerTest extends FunctionalTest
         return parent::getExtraDataObjects();
     }
 
-    protected function setUp()
+    protected function setUp(): void            
     {
         parent::setUp();
         $config = Config::modify();
