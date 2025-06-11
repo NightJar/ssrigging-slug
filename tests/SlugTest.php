@@ -133,7 +133,7 @@ class SlugTest extends SapphireTest
         $article = $this->objFromFixture(Article::class, 'one');
         $this->assertEquals('news/first-news', $article->Link());
         $iSpy = '?tracking=you#some-ad';
-        $this->assertEquals("news/first-news${iSpy}", $article->Link($iSpy));
+        $this->assertEquals("news/first-news{$iSpy}", $article->Link($iSpy));
     }
 
     public function testCMSFieldsAreUpdated()
