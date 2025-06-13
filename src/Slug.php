@@ -218,9 +218,9 @@ class Slug extends DataExtension
         $link = null;
         $owner = $this->getOwner();
         $action = ($action) ? Controller::join_links($owner->URLSlug, $action) : $owner->URLSlug;
-        
+
         $relationName = $this->relationName;
-        if ($relationName && ($parent = $owner->$relationName()) && $parent->hasMethod('Link')) {
+        if ($relationName && ($parent = $owner->$relationName()) && $parent->exists() && $parent->hasMethod('Link')) {
             $link = $parent->Link($action);
         } elseif (Controller::has_curr()) {
             // Quite the assumption, but sufficient in most cases.
